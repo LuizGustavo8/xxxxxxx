@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Masterclass Claude</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=Playfair+Display:wght@400;500;700&display=swap');
+
+:root {
+  --bg: #020202;
+  --bg-subtle: #0a0e14;
+  --text: #f0f2f8;
+  --text-muted: rgba(216, 222, 238, 0.5);
+  --accent: #E27B40;
+  --accent-light: #F0A06A;
+  --accent-glow: rgba(226, 123, 64, 0.15);
+  --accent-soft: rgba(226, 123, 64, 0.08);
+  --glass: rgba(255, 255, 255, 0.04);
+  --glass-border: rgba(255, 255, 255, 0.06);
+}
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+}
+
+.deck { width: 100%; height: 100%; position: relative; }
+
+.slide {
+  position: absolute; inset: 0;
+  padding: clamp(1.5rem, 4vw, 4.5rem);
+  padding-bottom: 4.5rem;
+  display: flex; flex-direction: column; justify-content: center;
+  opacity: 0; transform: translateX(40px);
+  transition: opacity 0.6s cubic-bezier(0.22,1,0.36,1), transform 0.6s cubic-bezier(0.22,1,0.36,1);
+  pointer-events: none; overflow-y: auto; overflow-x: hidden;
+}
+.slide.active { opacity:1; transform:translateX(0); pointer-events:auto; z-index:2; }
+.slide.prev { opacity:0; transform:translateX(-40px); }
+
+.slide.active .stagger { animation: fadeUp 0.7s cubic-bezier(0.22,1,0.36,1) both; }
+.slide.active .stagger:nth-child(1){animation-delay:.08s}
+.slide.active .stagger:nth-child(2){animation-delay:.16s}
+.slide.active .stagger:nth-child(3){animation-delay:.24s}
+.slide.active .stagger:nth-child(4){animation-delay:.32s}
+.slide.active .stagger:nth-child(5){animation-delay:.40s}
+.slide.active .stagger:nth-child(6){animation-delay:.48s}
+.slide.active .stagger:nth-child(7){animation-delay:.56s}
+.slide.active .stagger:nth-child(8){animation-delay:.64s}
+.slide.active .stagger:nth-child(9){animation-delay:.72s}
+.slide.active .stagger:nth-child(10){animation-delay:.80s}
+
+@keyframes fadeUp { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
+
+.display { font-family:'Playfair Display',serif; font-weight:400; line-height:1.1; letter-spacing:-0.02em; }
+.display-xl { font-size:clamp(2.2rem,4.5vw,4rem); }
+.display-lg { font-size:clamp(1.6rem,3vw,2.6rem); }
+.display-md { font-size:clamp(1.3rem,2.2vw,1.8rem); }
+.body-lg { font-size:clamp(0.95rem,1.3vw,1.15rem); line-height:1.65; color:var(--text-muted); }
+.body-md { font-size:clamp(0.82rem,1vw,0.95rem); line-height:1.6; color:var(--text-muted); }
+.accent-text { color:var(--accent); }
+.white-text { color:var(--text); }
+
+.tag {
+  display:inline-block; padding:0.3em 0.9em; font-weight:600; font-size:0.65rem;
+  text-transform:uppercase; letter-spacing:0.12em; color:var(--accent);
+  border:1px solid rgba(226,123,64,0.3); border-radius:100px;
+  background:var(--accent-soft); font-family:'DM Sans',sans-serif;
+}
+
+.card {
+  background:var(--glass); border:1px solid var(--glass-border); border-radius:16px;
+  padding:clamp(1rem,2vw,1.6rem); backdrop-filter:blur(12px);
+  transition:border-color .3s, background .3s;
+}
+.card:hover { border-color:rgba(226,123,64,0.2); background:rgba(255,255,255,0.06); }
+.card-icon { width:32px; height:32px; color:var(--accent); margin-bottom:0.6rem; }
+.card h3 { font-family:'DM Sans',sans-serif; font-weight:700; font-size:clamp(0.85rem,1.05vw,0.95rem); margin-bottom:0.4rem; color:var(--text); }
+.card p { font-size:clamp(0.75rem,0.88vw,0.85rem); line-height:1.55; color:var(--text-muted); }
+
+.layout-hero { text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:clamp(0.8rem,1.8vw,1.5rem); min-height:70vh; }
+.layout-split { display:grid; grid-template-columns:1fr 1fr; gap:clamp(1.5rem,3.5vw,4rem); align-items:center; }
+.layout-grid { display:grid; gap:clamp(0.7rem,1.2vw,1rem); }
+.layout-grid.cols-2 { grid-template-columns:repeat(2,1fr); }
+.layout-grid.cols-3 { grid-template-columns:repeat(3,1fr); }
+.layout-grid.cols-4 { grid-template-columns:repeat(4,1fr); }
+
+.glow-orb { position:absolute; border-radius:50%; filter:blur(80px); opacity:0.12; pointer-events:none; z-index:0; }
+
+.feature-list { display:flex; flex-direction:column; gap:clamp(0.5rem,0.8vw,0.7rem); }
+.feature-item { display:flex; gap:0.6rem; align-items:flex-start; }
+.feat-dot { width:6px; height:6px; border-radius:50%; background:var(--accent); margin-top:0.4rem; flex-shrink:0; }
+.feature-item p { font-size:clamp(0.78rem,0.92vw,0.88rem); line-height:1.5; color:var(--text-muted); }
+
+.step-flow { display:flex; flex-direction:column; gap:0; position:relative; }
+.step { display:grid; grid-template-columns:40px 1fr; gap:clamp(0.6rem,1.2vw,1rem); align-items:start; position:relative; }
+.step-marker { display:flex; flex-direction:column; align-items:center; }
+.step-num { width:28px; height:28px; border-radius:50%; background:var(--accent); color:var(--bg); font-weight:800; font-size:0.7rem; display:flex; align-items:center; justify-content:center; flex-shrink:0; position:relative; z-index:1; }
+.step-line { width:2px; flex:1; min-height:12px; background:linear-gradient(to bottom, rgba(226,123,64,0.4), transparent); }
+.step-body { padding-bottom:clamp(0.6rem,1vw,0.8rem); }
+.step-body h4 { font-weight:700; font-size:clamp(0.8rem,0.95vw,0.9rem); margin-bottom:0.2rem; color:var(--text); }
+.step-body p { font-size:clamp(0.72rem,0.85vw,0.82rem); color:var(--text-muted); line-height:1.5; }
+
+.prompt-box { background:var(--bg-subtle); border:1px solid var(--glass-border); border-radius:12px; padding:clamp(0.8rem,1.5vw,1.2rem); font-size:clamp(0.7rem,0.82vw,0.78rem); color:var(--text-muted); line-height:1.65; position:relative; font-family:'DM Sans',monospace; }
+.prompt-box .hl { color:var(--accent); font-weight:600; }
+.prompt-label { position:absolute; top:-8px; left:12px; background:var(--bg-subtle); padding:0 6px; font-size:0.6rem; font-weight:600; color:var(--accent); text-transform:uppercase; letter-spacing:0.08em; }
+
+.info-block { display:grid; grid-template-columns:auto 1fr; gap:0.8rem; padding:clamp(0.8rem,1.5vw,1.2rem); background:var(--glass); border:1px solid var(--glass-border); border-radius:12px; align-items:start; }
+.info-icon { width:20px; height:20px; border-radius:50%; background:var(--accent); color:var(--bg); font-weight:800; font-size:0.6rem; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px; }
+.info-block p { font-size:clamp(0.72rem,0.85vw,0.82rem); color:var(--text-muted); line-height:1.5; }
+
+.section-num { font-weight:800; font-size:clamp(3.5rem,7vw,7rem); line-height:1; background:linear-gradient(135deg,var(--accent),var(--accent-light)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; opacity:0.15; position:absolute; top:clamp(1rem,3vw,2.5rem); right:clamp(1rem,3vw,3rem); }
+
+.define-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:clamp(0.8rem,1.5vw,1.2rem); }
+.define-card { background:var(--glass); border:1px solid var(--glass-border); border-radius:14px; padding:clamp(1rem,1.8vw,1.4rem); display:flex; flex-direction:column; gap:0.5rem; }
+.define-card .define-label { font-size:0.6rem; text-transform:uppercase; letter-spacing:0.1em; font-weight:700; color:var(--accent); margin-bottom:0.1rem; }
+.define-card h3 { font-size:clamp(0.85rem,1vw,0.95rem); font-weight:700; color:var(--text); }
+.define-card p { font-size:clamp(0.72rem,0.85vw,0.82rem); color:var(--text-muted); line-height:1.5; }
+
+.data-table { width:100%; border-collapse:separate; border-spacing:0; font-size:clamp(0.68rem,0.82vw,0.78rem); }
+.data-table th { text-align:left; padding:0.6em 0.8em; color:var(--accent); font-weight:600; font-size:0.6rem; text-transform:uppercase; letter-spacing:0.08em; border-bottom:1px solid var(--glass-border); background:var(--accent-soft); }
+.data-table td { padding:0.55em 0.8em; border-bottom:1px solid var(--glass-border); color:var(--text-muted); line-height:1.4; }
+.data-table tr:hover td { background:var(--glass); }
+.data-table .cell-hl { color:var(--accent); font-weight:600; }
+
+.layout-timeline { display:flex; flex-direction:column; gap:clamp(0.8rem,1.4vw,1.2rem); }
+.timeline-item { display:grid; grid-template-columns:auto 1fr; gap:clamp(0.6rem,1.2vw,1rem); align-items:start; }
+.timeline-marker { display:flex; flex-direction:column; align-items:center; }
+.timeline-dot { width:12px; height:12px; border-radius:50%; background:var(--accent); box-shadow:0 0 20px var(--accent-glow); flex-shrink:0; }
+.timeline-line { width:2px; height:100%; min-height:24px; background:linear-gradient(to bottom,var(--accent),transparent); }
+.timeline-content h3 { font-weight:700; font-size:clamp(0.82rem,0.95vw,0.9rem); margin-bottom:0.2rem; }
+.timeline-content p { font-size:clamp(0.72rem,0.85vw,0.82rem); color:var(--text-muted); line-height:1.5; }
+
+.nav-bar { position:fixed; bottom:0; left:0; right:0; z-index:100; display:flex; align-items:center; justify-content:space-between; padding:0.7rem clamp(1.2rem,2.5vw,2.5rem); background:rgba(2,2,2,0.88); backdrop-filter:blur(16px); border-top:1px solid var(--glass-border); }
+.nav-btn { background:var(--glass); border:1px solid var(--glass-border); color:var(--text); padding:0.45em 1em; border-radius:100px; cursor:pointer; font-family:'DM Sans',sans-serif; font-size:0.75rem; font-weight:600; transition:all .2s; display:flex; align-items:center; gap:0.35rem; }
+.nav-btn:hover { background:var(--accent-soft); border-color:rgba(226,123,64,0.3); color:var(--accent); }
+.nav-btn:disabled { opacity:0.3; cursor:default; }
+.nav-progress { display:flex; gap:3px; align-items:center; }
+.nav-dot { width:5px; height:5px; border-radius:50%; background:rgba(255,255,255,0.15); transition:all .3s; cursor:pointer; }
+.nav-dot.active { background:var(--accent); box-shadow:0 0 10px var(--accent-glow); width:18px; border-radius:3px; }
+.nav-counter { font-size:0.7rem; color:var(--text-muted); font-weight:500; min-width:55px; text-align:center; }
+
+.conn-pill { display:inline-flex; align-items:center; gap:0.35rem; padding:0.3em 0.7em; background:var(--glass); border:1px solid var(--glass-border); border-radius:8px; font-size:clamp(0.65rem,0.75vw,0.72rem); color:var(--text); font-weight:500; white-space:nowrap; }
+.conn-dot { width:6px; height:6px; border-radius:50%; background:var(--accent); }
+.conn-grid { display:flex; flex-wrap:wrap; gap:0.4rem; }
+
+.vs-container { display:grid; grid-template-columns:1fr auto 1fr; gap:1.2rem; align-items:start; }
+.vs-badge { background:var(--accent); color:var(--bg); font-weight:800; font-size:0.7rem; padding:0.35em 0.7em; border-radius:8px; }
+.vs-divider { display:flex; align-items:center; justify-content:center; padding-top:1.5rem; }
+
+@media(max-width:768px) {
+  .layout-split { grid-template-columns:1fr; gap:1.2rem; }
+  .layout-grid.cols-3,.layout-grid.cols-4 { grid-template-columns:1fr; }
+  .layout-grid.cols-2 { grid-template-columns:1fr; }
+  .define-grid { grid-template-columns:1fr; }
+  .slide { padding:clamp(1.2rem,3vw,2rem); padding-bottom:4.5rem; }
+  .nav-progress { display:none; }
+  .vs-container{grid-template-columns:1fr} .vs-divider{flex-direction:row;padding:0;gap:0.4rem}
+}
+</style>
+</head>
+<body>
+<div class="deck" id="deck">
+
+<!-- SLIDE 0 — COVER -->
+<div class="slide active" data-slide="0">
+  <div class="glow-orb" style="width:600px;height:600px;background:var(--accent);top:-20%;right:-15%;"></div>
+  <div class="glow-orb" style="width:350px;height:350px;background:var(--accent);bottom:-10%;left:-10%;opacity:0.06;"></div>
+  <div class="layout-hero">
+    <div class="stagger"><span class="tag">Masterclass</span></div>
+    <h1 class="stagger display display-xl" style="max-width:750px;">Tirando o <em class="accent-text">máximo</em> do Claude</h1>
+    <p class="stagger body-lg" style="max-width:520px;">O guia completo para dominar cada funcionalidade — com explicações claras e exemplos práticos passo-a-passo.</p>
+    <div class="stagger" style="margin-top:0.8rem;">
+      <div style="display:inline-block;padding:0.65em 2em;background:var(--accent);color:var(--bg);border-radius:100px;font-weight:700;font-size:0.82rem;cursor:pointer;" onclick="goTo(1)">Começar ➜</div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 1 — ECOSSISTEMA -->
+<div class="slide" data-slide="1">
+  <span class="section-num">01</span>
+  <div class="glow-orb" style="width:400px;height:400px;background:var(--accent);top:-15%;left:-10%;"></div>
+  <div class="stagger"><span class="tag">Visão geral</span></div>
+  <h2 class="stagger display display-lg" style="margin:0.6rem 0 0.3rem;">O Ecossistema Claude</h2>
+  <p class="stagger body-md" style="max-width:500px;margin-bottom:1rem;">Cada funcionalidade resolve um problema diferente. A maestria está em combinar as camadas certas.</p>
+  <div class="layout-grid cols-4 stagger">
+    <div class="card"><svg class="card-icon" viewBox="0 0 40 40" fill="none"><rect x="6" y="6" width="28" height="28" rx="6" stroke="currentColor" stroke-width="2"/><path d="M14 16h12M14 21h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><h3>Artefatos</h3><p>Código renderizado em tempo real: HTML, React, SVG. Você vê e interage na própria conversa.</p></div>
+    <div class="card"><svg class="card-icon" viewBox="0 0 40 40" fill="none"><path d="M8 20l6 6 18-18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg><h3>Skills</h3><p>Instruções internas que geram arquivos profissionais: PPTX, DOCX, XLSX e PDF.</p></div>
+    <div class="card"><svg class="card-icon" viewBox="0 0 40 40" fill="none"><circle cx="20" cy="20" r="14" stroke="currentColor" stroke-width="2"/><path d="M20 12v8l5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><h3>Conectores MCP</h3><p>Integração bidirecional com Gmail, Calendar, Notion, Jira, HubSpot e outros.</p></div>
+    <div class="card"><svg class="card-icon" viewBox="0 0 40 40" fill="none"><path d="M10 30V18l10-8 10 8v12H10z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><rect x="16" y="22" width="8" height="8" rx="1" stroke="currentColor" stroke-width="2"/></svg><h3>Projetos</h3><p>Espaço com instruções e arquivos persistentes. Toda conversa herda o contexto.</p></div>
+  </div>
+  <div class="layout-grid cols-4 stagger" style="margin-top:clamp(0.6rem,1vw,0.8rem);">
+    <div class="card"><svg class="card-icon" viewBox="0 0 40 40" fill="none"><path d="M12 28c0-8 16-8 16-16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="28" cy="12" r="3" fill="currentColor"/></svg><h3>Cowork</h3><p>App desktop onde o Claude trabalha de forma autônoma em tarefas complexas.</p></div>
+    <div class="card"><svg class="card-icon" viewBox="0 0 40 40" fill="none"><rect x="8" y="12" width="24" height="16" rx="3" stroke="currentColor" stroke-width="2"/><path d="M12 18h6M12 22h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><h3>Claude Code</h3><p>Ferramenta de linha de comando que delega tarefas de código direto do terminal.</p></div>
+    <div class="card"><svg class="card-icon" viewBox="0 0 40 40" fill="none"><rect x="6" y="10" width="28" height="20" rx="4" stroke="currentColor" stroke-width="2"/><path d="M6 16h28" stroke="currentColor" stroke-width="1.5"/><rect x="10" y="20" width="8" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/></svg><h3>Extensão Excel</h3><p>Agente de IA que opera dentro da sua planilha Excel.</p></div>
+    <div class="card"><svg class="card-icon" viewBox="0 0 40 40" fill="none"><rect x="8" y="8" width="24" height="18" rx="3" stroke="currentColor" stroke-width="2"/><path d="M8 30h24" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><h3>Extensões PPT & Chrome</h3><p>Agentes que atuam dentro do PowerPoint e do navegador Chrome.</p></div>
+  </div>
+</div>
+
+<!-- SLIDE 2 — ARTEFATOS DEF -->
+<div class="slide" data-slide="2">
+  <span class="section-num">02</span>
+  <div class="glow-orb" style="width:450px;height:450px;background:var(--accent);bottom:-15%;right:-15%;"></div>
+  <div class="stagger"><span class="tag">Artefatos</span></div>
+  <h2 class="stagger display display-lg" style="margin:0.6rem 0 1rem;">Artefatos: Sua Fábrica de Entregáveis Visuais</h2>
+  <div class="define-grid stagger">
+    <div class="define-card">
+      <div class="define-label">O que é</div>
+      <h3>Código que roda na conversa</h3>
+      <p>Quando você pede algo visual, o Claude gera código (HTML, React/JSX, SVG ou Mermaid) que é <strong class="white-text">compilado e renderizado em tempo real</strong> como uma preview interativa dentro da própria conversa. Não é uma imagem — é código real rodando. Você pode clicar, digitar, interagir.</p>
+    </div>
+    <div class="define-card">
+      <div class="define-label">Como acessar</div>
+      <h3>Nativo no claude.ai</h3>
+      <p>Vá em <strong class="white-text">Configurações → Feature Preview → Artifacts</strong> e ative. A partir daí, basta pedir algo que tenha saída visual e o Claude cria o artefato automaticamente. O resultado aparece em um painel lateral que você pode expandir, copiar o código, ou baixar o arquivo.</p>
+    </div>
+    <div class="define-card">
+      <div class="define-label">Para que usar</div>
+      <h3>Tudo que é visual e auto-contido</h3>
+      <p>Landing pages, dashboards interativos, calculadoras, formulários, diagramas, protótipos de UI, email templates HTML, media kits, one-pagers, jogos, ferramentas internas — qualquer coisa que seja <strong class="white-text">front-end puro sem backend</strong>.</p>
+    </div>
+  </div>
+  <div class="info-block stagger" style="margin-top:1rem;">
+    <div class="info-icon">!</div>
+    <p><strong class="white-text">Dica crucial:</strong> Artefatos React podem usar bibliotecas como <strong class="accent-text">Recharts, D3, Chart.js, Three.js, Tailwind CSS e shadcn/ui</strong> — sem instalar nada. Peça interatividade e o Claude usa hooks do React. Peça persistência de dados e ele usa a API <code style="color:var(--accent)">window.storage</code> que salva entre sessões.</p>
+  </div>
+</div>
+
+<!-- SLIDE 3 — ARTEFATOS DEMO -->
+<div class="slide" data-slide="3">
+  <span class="section-num">02</span>
+  <div class="glow-orb" style="width:400px;height:400px;background:var(--accent);top:-10%;left:-10%;"></div>
+  <div class="stagger"><span class="tag">Na prática</span></div>
+  <h2 class="stagger display display-md" style="margin:0.6rem 0 0.8rem;">Demo: Criando uma Calculadora de ROI do Zero</h2>
+  <div class="layout-split stagger">
+    <div>
+      <div class="step-flow">
+        <div class="step"><div class="step-marker"><div class="step-num">1</div><div class="step-line"></div></div><div class="step-body"><h4>Dê contexto + especificação</h4><p>Descreva o que a ferramenta faz, os inputs, os cálculos, e o estilo visual desejado.</p></div></div>
+        <div class="step"><div class="step-marker"><div class="step-num">2</div><div class="step-line"></div></div><div class="step-body"><h4>Claude gera o artefato React</h4><p>O resultado aparece no painel lateral. Você já pode testar com dados reais e ver se a lógica está correta.</p></div></div>
+        <div class="step"><div class="step-marker"><div class="step-num">3</div><div class="step-line"></div></div><div class="step-body"><h4>Itere por partes</h4><p>"Mude a fórmula do payback para considerar custo de oportunidade" — ajustes cirúrgicos sem refazer tudo.</p></div></div>
+        <div class="step"><div class="step-marker"><div class="step-num">4</div></div><div class="step-body"><h4>Exporte e hospede</h4><p>Copie o código final → suba em GitHub Pages, Netlify ou Vercel (grátis). Pronto: ferramenta em produção.</p></div></div>
+      </div>
+    </div>
+    <div>
+      <div class="prompt-box" style="margin-bottom:0.8rem;">
+        <div class="prompt-label">Prompt usado</div>
+        <span class="hl">Crie uma calculadora de ROI em React</span> onde o usuário insere:<br>
+        — Investimento mensal na ferramenta (R$)<br>
+        — Horas economizadas por semana<br>
+        — Custo/hora médio da equipe (R$)<br><br>
+        A calculadora deve mostrar: <span class="hl">economia mensal, economia anual, payback em meses</span>, e um gráfico de linha (Recharts) comparando investimento acumulado vs. economia acumulada ao longo de 12 meses.<br><br>
+        Design: fundo escuro, cards com glassmorphism, cores em laranja. <span class="hl">Estilo visual do Linear.</span>
+      </div>
+      <div class="info-block">
+        <div class="info-icon">→</div>
+        <p>Esse tipo de ferramenta custaria <strong class="accent-text">R$ 2.000-5.000</strong> para desenvolver com freelancer. No Claude, você cria em <strong class="accent-text">5 minutos</strong> e itera até ficar perfeita.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 4 — SKILLS DEF -->
+<div class="slide" data-slide="4">
+  <span class="section-num">03</span>
+  <div class="glow-orb" style="width:450px;height:450px;background:var(--accent);top:-10%;left:30%;"></div>
+  <div class="stagger"><span class="tag">Skills</span></div>
+  <h2 class="stagger display display-lg" style="margin:0.6rem 0 1rem;">Skills: Arquivos Profissionais sob Demanda</h2>
+  <div class="define-grid stagger">
+    <div class="define-card">
+      <div class="define-label">O que é</div>
+      <h3>Instruções de produção de arquivos</h3>
+      <p>Skills são <strong class="white-text">conjuntos de melhores práticas</strong> que o Claude consulta antes de gerar um arquivo. Quando você pede "crie uma apresentação", ele lê internamente o skill de PPTX que contém regras sobre hierarquia de slides, tipografia, uso de cores e estrutura — <strong class="white-text">como um designer experiente seguindo um styleguide</strong>.</p>
+    </div>
+    <div class="define-card">
+      <div class="define-label">Como acessar</div>
+      <h3>Ativação automática</h3>
+      <p>Ative <strong class="white-text">Configurações → Feature Preview → "Code Execution and File Creation"</strong>. A partir daí, basta pedir qualquer arquivo: "crie uma apresentação sobre X", "monte uma planilha de Y", "gere um relatório em Word de Z". O Claude detecta o formato e <strong class="white-text">aciona o skill correto automaticamente</strong>. Você recebe um link de download.</p>
+    </div>
+    <div class="define-card">
+      <div class="define-label">Formatos disponíveis</div>
+      <h3>4 tipos de saída</h3>
+      <p><strong class="accent-text">PPTX</strong> — Decks completos com slides formatados, speaker notes e hierarquia visual.<br>
+      <strong class="accent-text">DOCX</strong> — Propostas, relatórios, contratos com TOC, cabeçalhos e estilos profissionais.<br>
+      <strong class="accent-text">XLSX</strong> — Planilhas com fórmulas, formatação condicional e gráficos.<br>
+      <strong class="accent-text">PDF</strong> — Documentos finalizados, certificados, infográficos.</p>
+    </div>
+  </div>
+  <div class="info-block stagger" style="margin-top:1rem;">
+    <div class="info-icon">!</div>
+    <p><strong class="white-text">Skill customizado:</strong> Você pode criar seus próprios skills (via Claude Code ou documentação Cookbook). Imagine um skill que <strong class="accent-text">sempre gera propostas no template visual da sua empresa</strong>, com logo, cores e estrutura padronizados. Pesquise "Skills Notebooks" na documentação oficial para aprender a criar.</p>
+  </div>
+</div>
+
+<!-- SLIDE 5 — SKILLS DEMO -->
+<div class="slide" data-slide="5">
+  <span class="section-num">03</span>
+  <div class="glow-orb" style="width:400px;height:400px;background:var(--accent);bottom:-15%;left:-10%;"></div>
+  <div class="stagger"><span class="tag">Na prática</span></div>
+  <h2 class="stagger display display-md" style="margin:0.6rem 0 0.8rem;">Demo: Da Ideia à Proposta Comercial Completa</h2>
+  <div class="layout-split stagger">
+    <div>
+      <div class="step-flow">
+        <div class="step"><div class="step-marker"><div class="step-num">1</div><div class="step-line"></div></div><div class="step-body"><h4>Uploade o briefing do cliente</h4><p>Anexe na conversa o email ou documento com as necessidades do cliente. O Claude lê e extrai os pontos-chave.</p></div></div>
+        <div class="step"><div class="step-marker"><div class="step-num">2</div><div class="step-line"></div></div><div class="step-body"><h4>Peça a proposta com especificações</h4><p>Defina formato (DOCX), seções desejadas, tom de voz, e anexe sua tabela de preços se tiver.</p></div></div>
+        <div class="step"><div class="step-marker"><div class="step-num">3</div><div class="step-line"></div></div><div class="step-body"><h4>Claude gera o .docx completo</h4><p>Com capa, sumário, escopo, metodologia, cronograma, investimento e termos. Link de download aparece no chat.</p></div></div>
+        <div class="step"><div class="step-marker"><div class="step-num">4</div></div><div class="step-body"><h4>Peça o deck de apresentação</h4><p>"Agora transforme essa proposta em um deck PPTX de 8 slides para apresentar ao cliente." — ele reaproveita o conteúdo.</p></div></div>
+      </div>
+    </div>
+    <div>
+      <div class="prompt-box" style="margin-bottom:0.8rem;">
+        <div class="prompt-label">Prompt usado</div>
+        Com base no briefing anexado, <span class="hl">crie uma proposta comercial em DOCX</span> para serviços de consultoria em IA Aplicada.<br><br>
+        Estrutura:<br>
+        — Capa com nome do cliente e data<br>
+        — Sumário executivo (1 parágrafo)<br>
+        — Diagnóstico do cenário atual<br>
+        — Solução proposta com 3 frentes de trabalho<br>
+        — Cronograma em fases (tabela)<br>
+        — Investimento (use os valores da tabela de preços em anexo)<br>
+        — Termos e condições<br><br>
+        <span class="hl">Tom consultivo e executivo. Sem jargão.</span>
+      </div>
+      <div class="info-block">
+        <div class="info-icon">→</div>
+        <p>Na mesma conversa, peça: <strong class="accent-text">"Agora gere um PPTX de 8 slides resumindo a proposta para apresentação."</strong> O Claude mantém o contexto e gera o deck derivado.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 6 — CONECTORES DEF -->
+<div class="slide" data-slide="6">
+  <span class="section-num">04</span>
+  <div class="glow-orb" style="width:500px;height:500px;background:var(--accent);top:-15%;right:-15%;"></div>
+  <div class="stagger"><span class="tag">Conectores MCP</span></div>
+  <h2 class="stagger display display-lg" style="margin:0.6rem 0 1rem;">Conectores: O Claude que <em class="accent-text">Executa</em></h2>
+  <div class="define-grid stagger">
+    <div class="define-card">
+      <div class="define-label">O que é</div>
+      <h3>Integração via MCP</h3>
+      <p>Conectores usam o <strong class="white-text">Model Context Protocol (MCP)</strong> — um protocolo aberto criado pela Anthropic para que IAs interajam com ferramentas externas. O Claude pode <strong class="white-text">ler, criar e modificar dados</strong> diretamente em serviços como Gmail, Google Calendar, Notion, Jira e HubSpot. Não é só consulta: é ação bidirecional.</p>
+    </div>
+    <div class="define-card">
+      <div class="define-label">Como configurar</div>
+      <h3>3 cliques para conectar</h3>
+      <p>No claude.ai, vá em <strong class="white-text">Configurações → Connectors</strong>. Você verá a lista de integrações disponíveis. Clique em "Connect" ao lado do serviço desejado, autentique com sua conta (OAuth), e pronto. <strong class="white-text">A partir desse momento</strong>, basta pedir ao Claude em linguagem natural: "veja minha agenda de amanhã" ou "busque emails sobre o projeto X".</p>
+    </div>
+    <div class="define-card">
+      <div class="define-label">Conectores disponíveis</div>
+      <h3>14+ integrações nativas</h3>
+      <div class="conn-grid" style="margin-top:0.3rem;">
+        <span class="conn-pill"><span class="conn-dot"></span>Gmail</span>
+        <span class="conn-pill"><span class="conn-dot"></span>Google Calendar</span>
+        <span class="conn-pill"><span class="conn-dot"></span>Notion</span>
+        <span class="conn-pill"><span class="conn-dot"></span>Linear</span>
+        <span class="conn-pill"><span class="conn-dot"></span>Asana</span>
+        <span class="conn-pill"><span class="conn-dot"></span>Jira / Confluence</span>
+        <span class="conn-pill"><span class="conn-dot"></span>HubSpot</span>
+        <span class="conn-pill"><span class="conn-dot"></span>Microsoft 365</span>
+        <span class="conn-pill"><span class="conn-dot"></span>Monday.com</span>
+        <span class="conn-pill"><span class="conn-dot"></span>Figma</span>
+        <span class="conn-pill"><span class="conn-dot"></span>Box</span>
+        <span class="conn-pill"><span class="conn-dot"></span>Canva</span>
+        <span class="conn-pill"><span class="conn-dot"></span>Intercom</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 7 — CONECTORES DEMO -->
+<div class="slide" data-slide="7">
+  <span class="section-num">04</span>
+  <div class="glow-orb" style="width:400px;height:400px;background:var(--accent);bottom:-10%;left:-10%;"></div>
+  <div class="stagger"><span class="tag">Na prática</span></div>
+  <h2 class="stagger display display-md" style="margin:0.6rem 0 0.8rem;">Demo: Preparando uma Reunião com Prospect em 2 Min</h2>
+  <div class="layout-split stagger">
+    <div>
+      <div class="step-flow">
+        <div class="step"><div class="step-marker"><div class="step-num">1</div><div class="step-line"></div></div><div class="step-body"><h4>Consulte a agenda</h4><p>"Quais reuniões eu tenho amanhã?" → Claude acessa o Google Calendar e lista seus compromissos com horário, participantes e links.</p></div></div>
+        <div class="step"><div class="step-marker"><div class="step-num">2</div><div class="step-line"></div></div><div class="step-body"><h4>Busque histórico de emails</h4><p>"Busque no Gmail os últimos emails com a empresa XYZ e me faça um resumo" → Claude pesquisa, lê e sintetiza pontos pendentes.</p></div></div>
+        <div class="step"><div class="step-marker"><div class="step-num">3</div><div class="step-line"></div></div><div class="step-body"><h4>Consulte o deal no CRM</h4><p>"Qual o status do deal da XYZ no HubSpot?" → Claude puxa valor, fase, próximos passos e histórico de atividades.</p></div></div>
+        <div class="step"><div class="step-marker"><div class="step-num">4</div></div><div class="step-body"><h4>Gere o briefing da reunião</h4><p>"Com tudo isso, monte um briefing de preparação" → Claude cruza agenda + emails + CRM e entrega um doc estruturado.</p></div></div>
+      </div>
+    </div>
+    <div>
+      <div class="prompt-box" style="margin-bottom:0.8rem;">
+        <div class="prompt-label">Conversa real</div>
+        <span class="hl">Você:</span> Quais reuniões eu tenho amanhã?<br>
+        <span style="color:rgba(226,123,64,0.5);">Claude:</span> Você tem 3 reuniões. A das 14h é com João da XYZ Corp...<br><br>
+        <span class="hl">Você:</span> Busque no Gmail as últimas trocas com a XYZ e os pontos pendentes.<br>
+        <span style="color:rgba(226,123,64,0.5);">Claude:</span> Encontrei 8 emails. Os pontos pendentes são...<br><br>
+        <span class="hl">Você:</span> Qual o status do deal da XYZ no HubSpot?<br>
+        <span style="color:rgba(226,123,64,0.5);">Claude:</span> Deal em "Negociação", valor R$ 85k...<br><br>
+        <span class="hl">Você:</span> Monte um briefing completo para essa reunião.
+      </div>
+      <div class="info-block">
+        <div class="info-icon">→</div>
+        <p>Tudo numa <strong class="accent-text">única conversa</strong>. O Claude mantém o contexto cruzado entre os conectores e gera um entregável que combina todas as fontes.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 8 — PROJETOS DEF -->
+<div class="slide" data-slide="8">
+  <span class="section-num">05</span>
+  <div class="glow-orb" style="width:450px;height:450px;background:var(--accent);top:-10%;left:40%;"></div>
+  <div class="stagger"><span class="tag">Projetos</span></div>
+  <h2 class="stagger display display-lg" style="margin:0.6rem 0 1rem;">Projetos: Contexto que Nunca se Perde</h2>
+  <div class="define-grid stagger">
+    <div class="define-card">
+      <div class="define-label">O que é</div>
+      <h3>Espaço com memória definida</h3>
+      <p>Um Projeto é um espaço no Claude onde você define <strong class="white-text">instruções personalizadas</strong> (system prompt) e <strong class="white-text">anexa arquivos de referência</strong>. Toda conversa criada dentro do projeto herda essas instruções e tem acesso aos arquivos — sem precisar re-enviar ou re-explicar a cada vez.</p>
+    </div>
+    <div class="define-card">
+      <div class="define-label">Como configurar</div>
+      <h3>Passo-a-passo</h3>
+      <p>No claude.ai, clique em <strong class="white-text">"Projects"</strong> na barra lateral → <strong class="white-text">"Create Project"</strong>. Defina: (1) o nome, (2) as instruções personalizadas no campo de texto (tom, regras, framework), (3) anexe até <strong class="white-text">200k tokens</strong> em arquivos de referência (PDFs, docs, planilhas, código). Cada nova conversa dentro desse projeto obedece essas configurações.</p>
+    </div>
+    <div class="define-card">
+      <div class="define-label">Quando usar</div>
+      <h3>Trabalho recorrente</h3>
+      <p>Use quando precisa que o Claude <strong class="white-text">sempre siga um padrão específico</strong>: tom de voz da marca, framework de consultoria, tabela de preços, template de proposta, guidelines de conteúdo. Ideal para trabalhar com o mesmo cliente, produto ou tema por semanas ou meses.</p>
+    </div>
+  </div>
+  <div class="info-block stagger" style="margin-top:1rem;">
+    <div class="info-icon">!</div>
+    <p><strong class="white-text">Projetos vs. Memória:</strong> A Memória do Claude salva preferências gerais (ex: "prefiro respostas curtas"). Projetos são <strong class="accent-text">contextos segmentados com escopo definido</strong> — o Claude dentro de um Projeto "Cliente ACME" não carrega informações do Projeto "Marketing". É isolamento intencional.</p>
+  </div>
+</div>
+
+<!-- SLIDE 9 — PROJETOS DEMO -->
+<div class="slide" data-slide="9">
+  <span class="section-num">05</span>
+  <div class="glow-orb" style="width:400px;height:400px;background:var(--accent);bottom:-15%;right:-10%;"></div>
+  <div class="stagger"><span class="tag">Na prática</span></div>
+  <h2 class="stagger display display-md" style="margin:0.6rem 0 0.8rem;">Demo: Configurando um Projeto de Consultoria</h2>
+  <div class="layout-split stagger">
+    <div>
+      <div class="step-flow">
+        <div class="step"><div class="step-marker"><div class="step-num">1</div><div class="step-line"></div></div><div class="step-body"><h4>Crie o projeto</h4><p>Projects → Create Project → Nome: "Cliente ACME — Transformação Digital"</p></div></div>
+        <div class="step"><div class="step-marker"><div class="step-num">2</div><div class="step-line"></div></div><div class="step-body"><h4>Escreva as instruções</h4><p>Defina quem você é, o framework, regras de tom, formato padrão e restrições (veja exemplo ao lado).</p></div></div>
+        <div class="step"><div class="step-marker"><div class="step-num">3</div><div class="step-line"></div></div><div class="step-body"><h4>Anexe os arquivos-chave</h4><p>Briefing do cliente, diagnóstico anterior, tabela de preços, organograma, brand guidelines, exemplos de entregas.</p></div></div>
+        <div class="step"><div class="step-marker"><div class="step-num">4</div></div><div class="step-body"><h4>Use: cada conversa já sabe tudo</h4><p>Abra uma nova conversa no projeto e peça: "monte o relatório mensal" — o Claude já conhece cliente, framework e dados.</p></div></div>
+      </div>
+    </div>
+    <div>
+      <div class="prompt-box">
+        <div class="prompt-label">Instruções do projeto</div>
+        <span class="hl">Identidade:</span> Você é consultor sênior da [Empresa], especialista em transformação digital e IA aplicada.<br><br>
+        <span class="hl">Cliente:</span> ACME Corp, varejo, 2.000 funcionários, faturamento R$ 500M/ano. CEO: Maria. Sponsor: Diretor de TI Carlos.<br><br>
+        <span class="hl">Framework:</span> Todas as entregas seguem nosso modelo de 5 fases: Diagnóstico → Ideação → Priorização → Piloto → Escala.<br><br>
+        <span class="hl">Tom:</span> Executivo, objetivo, sem jargão técnico. Valores sempre em BRL.<br><br>
+        <span class="hl">Formato padrão:</span> Relatórios em DOCX. Apresentações em PPTX de no máximo 12 slides. Dados em XLSX.<br><br>
+        <span class="hl">Restrições:</span> Nunca recomende ferramentas concorrentes do cliente. Use dados reais dos arquivos anexados.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 10 — COWORK DEF -->
+<div class="slide" data-slide="10">
+  <span class="section-num">06</span>
+  <div class="glow-orb" style="width:450px;height:450px;background:var(--accent);top:-15%;left:-10%;"></div>
+  <div class="stagger"><span class="tag">Cowork</span></div>
+  <h2 class="stagger display display-lg" style="margin:0.6rem 0 1rem;">Cowork: O Agente Autônomo no Desktop</h2>
+  <div class="define-grid stagger">
+    <div class="define-card">
+      <div class="define-label">O que é</div>
+      <h3>Trabalho de conhecimento agêntico</h3>
+      <p>Cowork é um <strong class="white-text">app desktop para não-desenvolvedores</strong> onde o Claude trabalha de forma autônoma em tarefas complexas. Ele navega na web, pesquisa, analisa documentos e gera entregáveis — tudo em sequência, sem supervisão. Pense nele como um <strong class="white-text">analista competente</strong> que recebe um briefing e volta com o trabalho pronto.</p>
+    </div>
+    <div class="define-card">
+      <div class="define-label">Como acessar</div>
+      <h3>App desktop + mobile</h3>
+      <p>Disponível como <strong class="white-text">aplicativo desktop</strong> (Windows/Mac). Também pode ser iniciado e monitorado remotamente pelo <strong class="white-text">app mobile do Claude</strong>. O Cowork utiliza as extensões de Excel, PowerPoint e Chrome como ferramentas internas — ele abre planilhas, edita slides e navega em sites por conta própria.</p>
+    </div>
+    <div class="define-card">
+      <div class="define-label">Quando usar</div>
+      <h3>Tarefas multi-etapa demoradas</h3>
+      <p>Pesquisa profunda cruzando múltiplas fontes. Análise de documentos extensos. Montagem de relatórios combinando dados diferentes. Projetos que no chat levariam várias conversas — <strong class="white-text">no Cowork, você define o objetivo e ele executa autonomamente</strong>.</p>
+    </div>
+  </div>
+  <div class="info-block stagger" style="margin-top:1rem;">
+    <div class="info-icon">!</div>
+    <p><strong class="white-text">Cowork vs. Chat:</strong> Use o chat quando o trabalho é <strong class="accent-text">conversacional e iterativo</strong> (brainstorm, revisar, ajustar). Use o Cowork quando o trabalho é <strong class="accent-text">delegável com um briefing claro</strong> (pesquisa, compilação, análise comparativa). A diferença é o nível de autonomia.</p>
+  </div>
+</div>
+
+<!-- SLIDE 11 — CLAUDE CODE DEF -->
+<div class="slide" data-slide="11">
+  <span class="section-num">07</span>
+  <div class="glow-orb" style="width:400px;height:400px;background:var(--accent);bottom:-10%;right:-15%;"></div>
+  <div class="stagger"><span class="tag">Claude Code</span></div>
+  <h2 class="stagger display display-lg" style="margin:0.6rem 0 1rem;">Claude Code: Desenvolvendo no Terminal</h2>
+  <div class="define-grid stagger">
+    <div class="define-card">
+      <div class="define-label">O que é</div>
+      <h3>Agente de código na CLI</h3>
+      <p>Claude Code é uma <strong class="white-text">ferramenta de linha de comando</strong> que permite delegar tarefas de código direto do terminal, do app desktop ou do celular. Diferente dos artefatos, o Claude Code <strong class="white-text">trabalha no seu repositório real</strong>: lê arquivos, entende a codebase, executa comandos, roda testes e faz commits.</p>
+    </div>
+    <div class="define-card">
+      <div class="define-label">Como instalar</div>
+      <h3>Requer Node.js</h3>
+      <p>Pré-requisito: <strong class="white-text">Node.js instalado</strong>. Instalação:<br>
+      <code style="color:var(--accent);font-size:0.78rem;">npm install -g @anthropic-ai/claude-code</code><br><br>
+      Depois: <code style="color:var(--accent);font-size:0.78rem;">claude</code> no terminal para iniciar. Autentique com sua conta claude.ai (plano Pro+) ou com API key. Acessível pelo app desktop e mobile remotamente.</p>
+    </div>
+    <div class="define-card">
+      <div class="define-label">Quando usar</div>
+      <h3>Código em produção</h3>
+      <p><strong class="accent-text">Refatorar</strong> código existente. <strong class="accent-text">Implementar features</strong> em projetos já iniciados. <strong class="accent-text">Debugging</strong> — lê logs, identifica causa, aplica correção. <strong class="accent-text">Gerar testes</strong>. <strong class="accent-text">Setup</strong> de projetos. Também funciona com <strong class="white-text">servidores MCP</strong> para interagir com APIs externas.</p>
+    </div>
+  </div>
+  <div class="info-block stagger" style="margin-top:1rem;">
+    <div class="info-icon">!</div>
+    <p><strong class="white-text">Combinação poderosa:</strong> Prototipe no chat com artefatos (UI perfeita grátis) → Exporte o código → Use Claude Code para integrar no projeto real com backend, testes e deploy. <strong class="accent-text">É assim que você substitui o Lovable em 90% dos casos.</strong></p>
+  </div>
+</div>
+
+<!-- SLIDE 12 — EXTENSÕES DEF -->
+<div class="slide" data-slide="12">
+  <span class="section-num">08</span>
+  <div class="glow-orb" style="width:450px;height:450px;background:var(--accent);top:-10%;left:20%;"></div>
+  <div class="stagger"><span class="tag">Extensões</span></div>
+  <h2 class="stagger display display-lg" style="margin:0.6rem 0 1rem;">Extensões: Claude Dentro das Suas Ferramentas</h2>
+  <p class="stagger body-md" style="margin-bottom:0.8rem;">Produtos em beta que colocam o Claude atuando diretamente dentro das aplicações que você já usa.</p>
+  <div class="layout-grid cols-3 stagger">
+    <div class="card" style="border-top:2px solid var(--accent);">
+      <h3 style="color:var(--accent);">Claude in Excel</h3>
+      <p style="margin-bottom:0.5rem;"><strong class="white-text">O que é:</strong> Um agente que opera dentro das suas planilhas Excel, interagindo com células, fórmulas e gráficos.</p>
+      <p style="margin-bottom:0.5rem;"><strong class="white-text">Como acessar:</strong> Produto beta — verifique em Configurações → Extensions no claude.ai ou no app desktop.</p>
+      <p><strong class="white-text">Exemplo real:</strong> Planilha de vendas bagunçada → <em class="accent-text">"Padronize estados na col E, remova duplicatas, crie gráfico de vendas por região."</em> Ele executa dentro do Excel.</p>
+    </div>
+    <div class="card" style="border-top:2px solid var(--accent);">
+      <h3 style="color:var(--accent);">Claude in PowerPoint</h3>
+      <p style="margin-bottom:0.5rem;"><strong class="white-text">O que é:</strong> Um agente que edita e reformata apresentações diretamente no PowerPoint.</p>
+      <p style="margin-bottom:0.5rem;"><strong class="white-text">Como acessar:</strong> Produto beta — mesmas condições. Funciona integrado ao Cowork.</p>
+      <p><strong class="white-text">Exemplo real:</strong> Deck de 30 slides inconsistente → <em class="accent-text">"Reformate todos ao padrão visual da empresa e gere speaker notes."</em></p>
+    </div>
+    <div class="card" style="border-top:2px solid var(--accent);">
+      <h3 style="color:var(--accent);">Claude in Chrome</h3>
+      <p style="margin-bottom:0.5rem;"><strong class="white-text">O que é:</strong> Um agente de navegação que interage com websites autonomamente.</p>
+      <p style="margin-bottom:0.5rem;"><strong class="white-text">Como acessar:</strong> Produto beta — extensão do Chrome. Funciona integrado ao Cowork.</p>
+      <p><strong class="white-text">Exemplo real:</strong> <em class="accent-text">"Acesse 3 sites concorrentes e traga comparativo de preços e funcionalidades."</em></p>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 13 — FLUXO LOVABLE -->
+<div class="slide" data-slide="13">
+  <span class="section-num">09</span>
+  <div class="glow-orb" style="width:500px;height:500px;background:var(--accent);bottom:-15%;right:-15%;"></div>
+  <div class="stagger"><span class="tag">Fluxo completo</span></div>
+  <h2 class="stagger display display-md" style="margin:0.6rem 0 0.8rem;">Demo: Landing Page Sem Gastar Crédito no Lovable</h2>
+  <div class="layout-split stagger">
+    <div>
+      <div class="step-flow">
+        <div class="step"><div class="step-marker"><div class="step-num">1</div><div class="step-line"></div></div><div class="step-body"><h4>Crie o artefato no chat</h4><p>Peça a landing page descrevendo: seções, textos, paleta de cores, referência visual. O Claude gera um artefato React completo com animações, responsivo, interativo.</p></div></div>
+        <div class="step"><div class="step-marker"><div class="step-num">2</div><div class="step-line"></div></div><div class="step-body"><h4>Itere na conversa</h4><p>"Troque o hero por layout split com imagem à direita." "Adicione formulário de captura." "Mude a fonte." Cada iteração sem custo extra.</p></div></div>
+        <div class="step"><div class="step-marker"><div class="step-num">3</div><div class="step-line"></div></div><div class="step-body"><h4>Copie o código e hospede</h4><p>Clique em "Copy code" → cole num repo GitHub → ative GitHub Pages. Ou arraste para o Netlify. Hospedagem gratuita, SSL incluso.</p></div></div>
+        <div class="step"><div class="step-marker"><div class="step-num">4</div></div><div class="step-body"><h4>(Opcional) Integre com Claude Code</h4><p>Se precisar de backend (form que salva leads, analytics): use Claude Code para adicionar Supabase ou API serverless.</p></div></div>
+      </div>
+    </div>
+    <div>
+      <div style="margin-bottom:0.8rem;">
+        <div class="vs-container">
+          <div>
+            <h4 style="color:#f87171;font-size:0.82rem;margin-bottom:0.5rem;">❌ Fluxo Lovable</h4>
+            <div class="feature-list">
+              <div class="feature-item"><div class="feat-dot" style="background:#f87171;"></div><p>Descreve → gera → itera 15x</p></div>
+              <div class="feature-item"><div class="feat-dot" style="background:#f87171;"></div><p>Cada geração consome créditos</p></div>
+              <div class="feature-item"><div class="feat-dot" style="background:#f87171;"></div><p>Resultado preso ao Lovable</p></div>
+              <div class="feature-item"><div class="feat-dot" style="background:#f87171;"></div><p>US$ 20-50/mês de assinatura</p></div>
+            </div>
+          </div>
+          <div class="vs-divider"><span class="vs-badge">VS</span></div>
+          <div>
+            <h4 style="color:#4ade80;font-size:0.82rem;margin-bottom:0.5rem;">✓ Fluxo Claude</h4>
+            <div class="feature-list">
+              <div class="feature-item"><div class="feat-dot" style="background:#4ade80;"></div><p>Descreve → gera → itera à vontade</p></div>
+              <div class="feature-item"><div class="feat-dot" style="background:#4ade80;"></div><p>Sem custo adicional por iteração</p></div>
+              <div class="feature-item"><div class="feat-dot" style="background:#4ade80;"></div><p>Código seu, hospeda onde quiser</p></div>
+              <div class="feature-item"><div class="feat-dot" style="background:#4ade80;"></div><p>Incluso no plano Claude Pro</p></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="info-block">
+        <div class="info-icon">→</div>
+        <p><strong class="accent-text">Use Lovable quando precisar de:</strong> autenticação, banco de dados, APIs em produção, apps multi-tenant. Para tudo que é <strong class="white-text">front-end puro</strong> — o Claude é mais rápido e mais barato.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 14 — ECONOMIA -->
+<div class="slide" data-slide="14">
+  <span class="section-num">10</span>
+  <div class="glow-orb" style="width:450px;height:450px;background:var(--accent);top:-15%;left:-15%;"></div>
+  <div class="stagger"><span class="tag">Economia</span></div>
+  <h2 class="stagger display display-lg" style="margin:0.6rem 0 1rem;">O Que Você <em class="accent-text">Deixa de Pagar</em></h2>
+  <div class="stagger" style="overflow-x:auto;">
+    <table class="data-table">
+      <thead><tr><th>Necessidade</th><th>Ferramenta paga</th><th>Funcionalidade Claude</th><th>Como fazer na prática</th><th>Economia</th></tr></thead>
+      <tbody>
+        <tr><td>Landing page</td><td>Lovable / Framer</td><td class="cell-hl">Artefato React</td><td>Prompt → iterar → copiar código → hospedar GitHub Pages</td><td class="cell-hl">US$ 20-50/mês</td></tr>
+        <tr><td>Dashboard</td><td>Retool / Metabase</td><td class="cell-hl">Artefato + Recharts</td><td>Upload dados + prompt com KPIs → artefato interativo</td><td class="cell-hl">US$ 50-200/mês</td></tr>
+        <tr><td>Apresentação</td><td>Beautiful.ai / Gamma</td><td class="cell-hl">Skill PPTX</td><td>Prompt estruturado + referência visual → download .pptx</td><td class="cell-hl">US$ 12-30/mês</td></tr>
+        <tr><td>Calculadora</td><td>Dev freelancer</td><td class="cell-hl">Artefato React</td><td>Prompt com lógica + estilo → interativo com gráficos</td><td class="cell-hl">R$ 2-5k</td></tr>
+        <tr><td>Proposta</td><td>Templates pagos</td><td class="cell-hl">Projeto + Skill DOCX</td><td>Projeto configurado + upload briefing → .docx formatado</td><td class="cell-hl">US$ 10-30/mês</td></tr>
+        <tr><td>Pesquisa mercado</td><td>Analista freelancer</td><td class="cell-hl">Cowork + web search</td><td>Briefing → Cowork navega, compila e gera relatório</td><td class="cell-hl">R$ 3-8k</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="info-block stagger" style="margin-top:1rem;">
+    <div class="info-icon">$</div>
+    <p><strong class="white-text">Lembre:</strong> Todas essas funcionalidades estão <strong class="accent-text">inclusas no plano Claude Pro (US$ 20/mês)</strong>. Não há custo adicional por gerar artefatos, usar skills ou conectar ferramentas. O ROI é imediato.</p>
+  </div>
+</div>
+
+<!-- SLIDE 15 — BOAS PRÁTICAS -->
+<div class="slide" data-slide="15">
+  <span class="section-num">11</span>
+  <div class="glow-orb" style="width:400px;height:400px;background:var(--accent);bottom:-10%;right:-10%;"></div>
+  <div class="stagger"><span class="tag">Boas práticas</span></div>
+  <h2 class="stagger display display-lg" style="margin:0.6rem 0 1rem;">Prompts que Geram Resultados <em class="accent-text">Melhores</em></h2>
+  <div class="layout-split stagger">
+    <div>
+      <div class="step-flow">
+        <div class="step"><div class="step-marker"><div class="step-num">C</div><div class="step-line"></div></div><div class="step-body"><h4>Contexto</h4><p>Quem é você, para quem é, qual o objetivo. "Sou consultor preparando deliverable para o board do cliente."</p></div></div>
+        <div class="step"><div class="step-marker"><div class="step-num">T</div><div class="step-line"></div></div><div class="step-body"><h4>Tarefa</h4><p>O que exatamente produzir. "Crie um deck de 10 slides sobre tendências de IA no varejo."</p></div></div>
+        <div class="step"><div class="step-marker"><div class="step-num">F</div><div class="step-line"></div></div><div class="step-body"><h4>Formato</h4><p>Tipo de saída, extensão, estrutura. "PPTX com visual executivo, max 5 bullets por slide."</p></div></div>
+        <div class="step"><div class="step-marker"><div class="step-num">R</div><div class="step-line"></div></div><div class="step-body"><h4>Referência</h4><p>Estilo ou benchmark. "No estilo McKinsey — frameworks, dados, insights acionáveis."</p></div></div>
+        <div class="step"><div class="step-marker"><div class="step-num">E</div></div><div class="step-body"><h4>Exclusões</h4><p>O que evitar. "Sem jargão técnico. Não cite concorrentes. Valores em BRL."</p></div></div>
+      </div>
+    </div>
+    <div>
+      <div class="prompt-box" style="margin-bottom:0.8rem;">
+        <div class="prompt-label">Prompt ruim ❌</div>
+        Faz uma apresentação sobre IA.
+      </div>
+      <div class="prompt-box" style="margin-bottom:0.8rem;">
+        <div class="prompt-label">Prompt bom ✓</div>
+        <span class="hl">CONTEXTO:</span> Consultor de inovação, apresentação para board de varejo com 200 lojas.<br><br>
+        <span class="hl">TAREFA:</span> Deck sobre IA otimizando operações de loja, CX e supply chain.<br><br>
+        <span class="hl">FORMATO:</span> PPTX, 10 slides, visual executivo e clean.<br><br>
+        <span class="hl">REFERÊNCIA:</span> Estilo McKinsey — dados, frameworks visuais, insights acionáveis.<br><br>
+        <span class="hl">EXCLUSÕES:</span> Sem jargão técnico. Max 5 bullets/slide. Valores em BRL.
+      </div>
+      <div class="info-block">
+        <div class="info-icon">→</div>
+        <p><strong class="white-text">Para iterar:</strong> Seja cirúrgico. <em class="accent-text">"No slide 4, troque barras por linha com tendência 12 meses."</em> Edições específicas > refazer tudo.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 16 — CHECKLIST -->
+<div class="slide" data-slide="16">
+  <span class="section-num">12</span>
+  <div class="glow-orb" style="width:500px;height:500px;background:var(--accent);top:-15%;right:-15%;"></div>
+  <div class="stagger"><span class="tag">Implementação</span></div>
+  <h2 class="stagger display display-lg" style="margin:0.6rem 0 1rem;">Checklist: <em class="accent-text">4 Semanas</em> para Dominar</h2>
+  <div class="layout-timeline stagger">
+    <div class="timeline-item">
+      <div class="timeline-marker"><div class="timeline-dot"></div><div class="timeline-line"></div></div>
+      <div class="timeline-content">
+        <span class="tag" style="margin-bottom:0.2rem;display:inline-block;">Semana 1 — Setup</span>
+        <h3>Fundação do ambiente</h3>
+        <p>Ative Artifacts e File Creation nas Feature Previews. Conecte 3 ferramentas em Connectors (Calendar, Gmail, CRM/PM tool). Configure preferências pessoais em Settings → User Preferences. Crie seu primeiro Projeto para o cliente ou workstream principal.</p>
+      </div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-marker"><div class="timeline-dot"></div><div class="timeline-line"></div></div>
+      <div class="timeline-content">
+        <span class="tag" style="margin-bottom:0.2rem;display:inline-block;">Semana 2 — Primeiras entregas</span>
+        <h3>Substituir o primeiro fluxo manual</h3>
+        <p>Gere sua primeira proposta ou relatório com Skills (DOCX). Crie um artefato React útil (calculadora, dashboard, comparativo). Use conectores para automatizar algo manual (resumo de emails, preparação de reunião).</p>
+      </div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-marker"><div class="timeline-dot"></div><div class="timeline-line"></div></div>
+      <div class="timeline-content">
+        <span class="tag" style="margin-bottom:0.2rem;display:inline-block;">Semana 3 — Combinar</span>
+        <h3>Fluxos integrados</h3>
+        <p>Dentro de um Projeto configurado: use conectores para puxar dados → gere dashboard como artefato → produza relatório DOCX → transforme em deck PPTX. Tudo na mesma sessão. Experimente o Cowork para pesquisa profunda.</p>
+      </div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-marker"><div class="timeline-dot"></div></div>
+      <div class="timeline-content">
+        <span class="tag" style="margin-bottom:0.2rem;display:inline-block;">Semana 4 — Escala</span>
+        <h3>Documentar e multiplicar</h3>
+        <p>Documente melhores prompts num Projeto "Playbook Interno". Treine colegas nos fluxos validados. Identifique ferramentas pagas para substituir. Se relevante: instale Claude Code e explore prototipação → produção.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 17 — CLOSING -->
+<div class="slide" data-slide="17">
+  <div class="glow-orb" style="width:700px;height:700px;background:var(--accent);top:50%;left:50%;transform:translate(-50%,-50%);opacity:0.08;"></div>
+  <div class="layout-hero">
+    <div class="stagger">
+      <svg width="50" height="50" viewBox="0 0 48 48" fill="none">
+        <circle cx="24" cy="24" r="22" stroke="var(--accent)" stroke-width="1.5" opacity="0.4"/>
+        <circle cx="24" cy="24" r="10" fill="var(--accent)" opacity="0.15"/>
+        <circle cx="24" cy="24" r="4" fill="var(--accent)"/>
+      </svg>
+    </div>
+    <h2 class="stagger display display-xl" style="max-width:650px;">A ferramenta é <em class="accent-text">poderosa</em>.<br>A maestria está em <em class="accent-text">como</em> usar.</h2>
+    <p class="stagger body-lg" style="max-width:450px;">Domine as funcionalidades. Combine as camadas certas. Entregue mais, gastando menos.</p>
+    <div class="stagger" style="margin-top:0.8rem;"><span class="tag">Masterclass Claude</span></div>
+  </div>
+</div>
+
+</div>
+
+<nav class="nav-bar">
+  <button class="nav-btn" id="prevBtn" onclick="prev()" disabled>
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>Anterior
+  </button>
+  <div style="display:flex;align-items:center;gap:0.8rem;">
+    <div class="nav-progress" id="navProgress"></div>
+    <span class="nav-counter" id="navCounter">1 / 18</span>
+  </div>
+  <button class="nav-btn" id="nextBtn" onclick="next()">
+    Próximo<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+  </button>
+</nav>
+
+<script>
+const slides=document.querySelectorAll('.slide'),total=slides.length;let current=0;
+function buildDots(){const c=document.getElementById('navProgress');c.innerHTML='';for(let i=0;i<total;i++){const d=document.createElement('div');d.className='nav-dot'+(i===current?' active':'');d.onclick=()=>goTo(i);c.appendChild(d);}}
+function update(){slides.forEach((s,i)=>{s.classList.remove('active','prev');if(i===current)s.classList.add('active');else if(i<current)s.classList.add('prev');});document.getElementById('navCounter').textContent=`${current+1} / ${total}`;document.getElementById('prevBtn').disabled=current===0;document.getElementById('nextBtn').disabled=current===total-1;buildDots();}
+function next(){if(current<total-1){current++;update();}}
+function prev(){if(current>0){current--;update();}}
+function goTo(i){current=i;update();}
+document.addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key===' '){e.preventDefault();next();}if(e.key==='ArrowLeft'){e.preventDefault();prev();}});
+let tx=0;document.addEventListener('touchstart',e=>{tx=e.changedTouches[0].screenX;});document.addEventListener('touchend',e=>{const d=tx-e.changedTouches[0].screenX;if(Math.abs(d)>50){d>0?next():prev();}});
+buildDots();
+</script>
+</body>
+</html>
